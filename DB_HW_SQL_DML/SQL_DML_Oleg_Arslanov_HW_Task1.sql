@@ -18,8 +18,7 @@ from (
 where not exists (select 1 from film where title = new_film.title)
 returning *;
 
-select *
-from film
+
 
 --Add the actors who play leading roles in your favorite movies to the 'actor' and 'film_actor' tables (6 or more actors in total).
 --  Actors with the name Actor1, Actor2, etc - will not be taken into account and grade will be reduced.
@@ -106,12 +105,14 @@ where not exists (
 returning actor_id, film_id;		
 		
 
+
 -- ! I know that I will need add values in film_category and category tables, but this action is not in HW !
 
 
 --Add your favorite movies to any store's inventory.
 
 -- there I added values for atributes film_id and adress_id for conection with other tables
+
 
 insert into public.inventory (film_id, store_id)
 select *
@@ -164,6 +165,8 @@ where not exists (
 )
 returning film_id, store_id;
 
+
+
 --Alter any existing customer in the database with at least 43 rental and 43 payment records. Change their personal data
 -- to yours (first name, last name, address, etc.). You can use any existing address from the "address" table. Please do not
 -- perform any updates on the "address" table, as this can impact multiple records with the same address.
@@ -186,18 +189,29 @@ from (
 	limit 1 
 ) as subquery
 )
+select p.customer_id, 
+	count(r.rental_id) as count_rental,
+	count(payment_id) as count_payment
+from public.rental r
+inner join public.payment p on r.rental_id = p.rental_id
+group by p.customer_id
+having count(r.rental_id) > 42 and count(payment_id) > 42 
+order by random() 
+limit 1; 
+--Updates the customer with customer_id: 598
+
 update public.customer
 set first_name = upper('Oleg'),
 	last_name = upper('Arslanov'),
 	email = upper ('olegarslanov')|| '' ||'@yahoo.com',
 	address_id = 600 
-where customer_id = (select customer_id from select_customer)
-returning *;
+
 
 
 --Remove any records related to you (as a customer) from all tables except 'Customer' and 'Inventory'
 
 --I remove records from rental and payment tables. And dont remove from address table, because think it is bad practice we must have info about customer 
+
 with select_customer2 as (
 	select customer_id
 	from customer c
@@ -218,6 +232,14 @@ from public.rental
 where customer_id = (select customer_id from select_customer2)
 
 
+delete from public.payment 
+where customer_id = 598;
+
+delete from public.rental 
+where customer_id = 598;
+
+
+
 --Rent you favorite movies from the store they are in and pay for them (add corresponding records to the database to represent this activity)
 --(Note: to insert the payment_date into the table payment, you can create a new partition (see the scripts to install the training database ) or add records for the
 --first half of 2017)
@@ -225,6 +247,7 @@ where customer_id = (select customer_id from select_customer2)
 
 --create partition of payment table
 create table payment_2024 partition of public.payment
+
 for values from ('2024-01-01') to ('2024-12-31')
 where not exists(
 	select 1
@@ -399,6 +422,8 @@ where not exists(
 		and payment_date::date = current_date
 )
 returning *;
+
+
 
 
 
