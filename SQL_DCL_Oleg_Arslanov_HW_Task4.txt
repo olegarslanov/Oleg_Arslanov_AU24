@@ -1,0 +1,49 @@
+--Task 4. Prepare answers to the following questions
+--How can one restrict access to certain columns of a database table?
+
+--we can choose grant select not all columns example: 
+GRANT SELECT (user_name, uid, gid, real_name, home_phone, extra_info, home_dir, shell) ON passwd TO public; 
+
+--Table have more columns (user_name, pwhash, uid, gid, real_name, home_phone, extra_info, home_dir, shell)
+
+
+--What is the difference between user identification and user authentication?
+
+-- first identifies the user, then authenticates the user by prompting for a password. We use in HW this method. Example: CREATE USER username WITH PASSWORD 'password';
+
+--this SQL query is designed to fetch information about role memberships, including grantor, member, and role involved
+select 
+	am.grantor as grantor,
+	r3.rolname as grantor_name,
+	member as member_id,
+	r2.rolname as member_name,
+	roleid as role_id,
+	r1.rolname as role_name
+from
+	pg_auth_members am
+join
+	pg_roles r1 on r1.oid = am.roleid
+join
+	pg_roles r2 on r2.oid = am.MEMBER
+join
+	pg_roles r3 on r3.oid = am.grantor
+order by 
+	role_name,
+	member_name;
+	
+
+--What are the recommended authentication protocols for PostgreSQL?
+
+-- Password authentication. This is the most common method, where users provide a password to gain access. It's suitable for both local and remote connections
+-- SCRAM-SHA-256. This method uses the SCRAM-SHA-256 algorithm for password authentication, providing strong security by preventing password sniffing and storing passwords in a hashed form
+-- Peer Authentication. Peer authentication relies on operating system facilities to identify the process at the other end of a local connection. It's typically used for local Unix-socket connection
+-- GSSAPI Auhentication. Generic Security Services Application Program Interface relies on a GSSAPI-compatible security library, often used for integrating with Kerberos or Microsoft Active Directory
+-- Certificate Authentication. This method requires an SSL connection and authenticates users by checking the SSL certificate they send
+-- and others
+
+
+--What is proxy authentication in PostgreSQL and what is it for? Why does it make the previously discussed role-based access control easier to implement?
+
+--Client connects to the proxy server, which then authenticates the client and establishes a secure connection to the PostgreSQL server.
+--Proxy authentication makes role-based access control easier to implement. Instead of configuring each application with its own set of access controls and authentication methods,
+-- you can use a proxy server to manage all connections.
