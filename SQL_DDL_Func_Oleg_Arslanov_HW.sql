@@ -14,15 +14,15 @@
 --The view should only display categories with at least one sale in the current quarter. 
 --Note: when the next quarter begins, it will be considered as the current quarter.
 
-
+-- this view is for fixed date 2017-01-24 because in DB we dont have data for current date
 create or replace view sales_revenue_by_category_qtr as
 select c.name as film_category, sum(amount) as revenue
-from category c
- 	inner join film_category fc on c.category_id = fc.category_id
- 	inner join film f on fc.film_id = f.film_id
- 	inner join inventory i on i.film_id = f.film_id
- 	inner join rental r on r.inventory_id = i.inventory_id
- 	inner join payment p on p.rental_id = r.rental_id
+from public.category c
+ 	inner join public.film_category fc on c.category_id = fc.category_id
+ 	inner join public.film f on fc.film_id = f.film_id
+ 	inner join public.inventory i on i.film_id = f.film_id
+ 	inner join public.rental r on r.inventory_id = i.inventory_id
+ 	inner join public.payment p on p.rental_id = r.rental_id
 where 
 	(extract(month from date '2017-01-24') between 10 and 12 and date(payment_date) between to_date(extract(year from date '2017-01-24') || '-10-01', 'yyyy-mm-dd') 
 	and to_date(extract(year from date '2017-01-24') || '-12-31', 'yyyy-mm-dd'))
@@ -32,17 +32,20 @@ where
 	and to_date(extract(year from date '2017-01-24') || '-06-30', 'yyyy-mm-dd'))
 	or (extract(month from date '2017-01-24') between 01 and 03 and date(payment_date) between to_date(extract(year from date '2017-01-24') || '-01-01', 'yyyy-mm-dd') 
 	and to_date(extract(year from date '2017-01-24') || '-03-31', 'yyyy-mm-dd'))
-group by c.name;
+group by c.name
+having count(amount)>=1;
+--added here having for having one ore more rentals
+
 
 -- I did that function for current date, but it not return rows ... I think because in previous HW I dont added data at category and film_category tables
 create or replace view sales_revenue_by_category_qtr as
 select c.name as film_category, sum(amount) as revenue
-from category c
- 	inner join film_category fc on c.category_id = fc.category_id
- 	inner join film f on fc.film_id = f.film_id
- 	inner join inventory i on i.film_id = f.film_id
- 	inner join rental r on r.inventory_id = i.inventory_id
- 	inner join payment p on p.rental_id = r.rental_id
+from public.category c
+ 	inner join public.film_category fc on c.category_id = fc.category_id
+ 	inner join public.film f on fc.film_id = f.film_id
+ 	inner join public.inventory i on i.film_id = f.film_id
+ 	inner join public.rental r on r.inventory_id = i.inventory_id
+ 	inner join public.payment p on p.rental_id = r.rental_id
 where 
 	(extract(month from current_date) between 10 and 12 and date(payment_date) between to_date(extract(year from current_date) || '-10-01', 'yyyy-mm-dd') 
 	and to_date(extract(year from current_date) || '-12-31', 'yyyy-mm-dd'))
@@ -52,8 +55,9 @@ where
 	and to_date(extract(year from current_date) || '-06-30', 'yyyy-mm-dd'))
 	or (extract(month from current_date) between 01 and 03 and date(payment_date) between to_date(extract(year from current_date) || '-01-01', 'yyyy-mm-dd') 
 	and to_date(extract(year from current_date) || '-03-31', 'yyyy-mm-dd'))
-group by c.name;
-
+group by c.name
+having count(amount)>=1;
+--added here having for having one ore more rentals
 
 select * from sales_revenue_by_category_qtr;
 
@@ -73,12 +77,12 @@ select
 	c.name as film_category,
 	sum(amount) as revenue
 from 
-	category c
- 	inner join film_category fc on c.category_id = fc.category_id
- 	inner join film f on fc.film_id = f.film_id
- 	inner join inventory i on i.film_id = f.film_id
- 	inner join rental r on r.inventory_id = i.inventory_id
- 	inner join payment p on p.rental_id = r.rental_id
+	public.category c
+ 	inner join public.film_category fc on c.category_id = fc.category_id
+ 	inner join public.film f on fc.film_id = f.film_id
+ 	inner join public.inventory i on i.film_id = f.film_id
+ 	inner join public.rental r on r.inventory_id = i.inventory_id
+ 	inner join public.payment p on p.rental_id = r.rental_id
 where 
 	case
 		when extract(month from input_date) between 10 and 12 then date(payment_date) between to_date(extract(year from input_date) || '-10-01', 'yyyy-mm-dd') 
@@ -91,6 +95,7 @@ where
 		and to_date(extract(year from input_date) || '-03-31', 'yyyy-mm-dd')
 	end
 group by c.name
+having count(amount) >=1
 $$ 
 language sql;
 
@@ -105,36 +110,44 @@ select * from get_sales_revenue_by_category_qtr ('2017-01-24')
 --Query (example): select * from core.most_popular_films_by_countries(array['Afghanistan','Brazil','United States’]);
 
 
-
+--added a RAISE EXCEPTION about an invalid parameter 
 create or replace function get_most_popular_film_by_countries (country_names text[])
 returns table (country text, film text, rating mpaa_rating, language bpchar(20), length int2, release_year year)
 language plpgsql
 as $$
+declare
+	countryX text;
 begin
+	for countryX in 
+		select unnest(country_names)
+	loop
+		if not exists (select 1 from public.country pc where upper(pc.country) = upper(countryX)) then
+			Raise exception 'Country must be inside dvdrental db. Calculating is close!';
+		end if;
+	end loop;
 return query
 with count_rental_film as (
-select co.country, f.title as film, f.rating, l.name, f.length, f.release_year, count(r.rental_id) AS rental_count
-from rental r
-inner join inventory i on r.inventory_id = i.inventory_id
-inner join film f on f.film_id = i.film_id
-inner join customer c on c.customer_id = r.customer_id 
-inner join address a on a.address_id = c.address_id 
-inner join city ci on ci.city_id = a.city_id 
-inner join country co on co.country_id = ci.country_id
-inner join language l on l.language_id = f.language_id
-where upper(co.country) =any (select upper(unnest(country_names)))
-GROUP BY co.country, f.title, f.rating, l.name, f.length, f.release_year
+	select co.country, f.title as film, f.rating, l.name, f.length, f.release_year, count(r.rental_id) AS rental_count
+	from public.rental r
+	inner join public.inventory i on r.inventory_id = i.inventory_id
+	inner join public.film f on f.film_id = i.film_id
+	inner join public.customer c on c.customer_id = r.customer_id 
+	inner join public.address a on a.address_id = c.address_id 
+	inner join public.city ci on ci.city_id = a.city_id 
+	inner join public.country co on co.country_id = ci.country_id
+	inner join public.language l on l.language_id = f.language_id
+	where upper(co.country) = any (select upper(unnest(country_names)))
+	group by co.country, f.title, f.rating, l.name, f.length, f.release_year
 )
 select crf.country, crf.film, crf.rating, crf.name as language, crf.length, crf.release_year
 from count_rental_film as crf
 where crf.rental_count = (
-select max(crf2.rental_count)
-from count_rental_film as crf2
-where crf2.country = crf.country
+	select max(crf2.rental_count)
+	from count_rental_film as crf2
+	where crf2.country = crf.country
 );
 end;
 $$;
-
 
 select * 
 from get_most_popular_film_by_countries(array['Russian Federation', 'Brazil', 'United States']);
@@ -150,13 +163,13 @@ begin
 return query
 with count_rental_film as (
 select f.title , count(r.rental_id) AS rental_count
-from rental r
-inner join inventory i on r.inventory_id = i.inventory_id
-inner join film f on f.film_id = i.film_id
-inner join customer c on c.customer_id = r.customer_id 
-inner join address a on a.address_id = c.address_id 
-inner join city ci on ci.city_id = a.city_id 
-inner join country co on co.country_id = ci.country_id
+from public.rental r
+inner join public.inventory i on r.inventory_id = i.inventory_id
+inner join public.film f on f.film_id = i.film_id
+inner join public.customer c on c.customer_id = r.customer_id 
+inner join public.address a on a.address_id = c.address_id 
+inner join public.city ci on ci.city_id = a.city_id 
+inner join public.country co on co.country_id = ci.country_id
 where upper(country) = upper(country_name)
 group by f.title
 )
@@ -188,11 +201,11 @@ as $function$
 begin
 return query
 select ROW_NUMBER() OVER () AS row_num, title as film_title, l.name as language, c.first_name || ' ' || c.last_name as customer_name, r.rental_date 
-from rental r
-inner join inventory i on r.inventory_id = i.inventory_id
-inner join film f on f.film_id = i.film_id
-inner join customer c on c.customer_id = r.customer_id 
-inner join language l on l.language_id = f.language_id
+from public.rental r
+inner join public.inventory i on r.inventory_id = i.inventory_id
+inner join public.film f on f.film_id = i.film_id
+inner join public.customer c on c.customer_id = r.customer_id 
+inner join public.language l on l.language_id = f.language_id
 where upper(title) like upper(title_name);
 if not found then 
 	raise exception 'Film with title % does not exists! Ya ya das is fantastic', title_name;
@@ -225,11 +238,11 @@ begin
             l.name as language, 
             c.first_name || ' ' || c.last_name AS customer_name, 
             r.rental_date
-        from rental r
-		inner join inventory i on r.inventory_id = i.inventory_id
-		inner join film f on f.film_id = i.film_id
-		inner join customer c on c.customer_id = r.customer_id 
-		inner join language l on l.language_id = f.language_id
+        from public.rental r
+		inner join public.inventory i on r.inventory_id = i.inventory_id
+		inner join public.film f on f.film_id = i.film_id
+		inner join public.customer c on c.customer_id = r.customer_id 
+		inner join public.language l on l.language_id = f.language_id
 		where upper(title) like upper(title_name)
     loop
         counter := counter + 1; -- counter +1
@@ -262,9 +275,14 @@ from get_films_in_stock_by_title2('%love%');
 
 drop function if exists new_movie(text, year, bpchar);
 
+-- so I added new language in table
+insert into public.language (name)
+values ('Klingon');
+
+
 create or replace function new_movie (
 	movie_title text,
-	release_year2 year default extract(year from current_date)::integer,
+	release_year year default extract(year from current_date)::integer,
 	language_name bpchar(20) default 'Klingon'
 	)
 returns void
@@ -276,31 +294,34 @@ begin
 	) then
 		raise exception 'Film "%" already exists in the DB!', movie_title;
     end if;
-    -- check if language exists
-    if not exists (
+    -- if language exists add with language from table, else add Klingon :)
+	if exists (
 		select 1
 		from public.language
 		where upper(name) = upper(language_name)
 	) then 
-		raise exception 'Language with ID "%" does not exists!', language_name;
+		insert into public.film (title, release_year, language_id)
+		values (movie_title, release_year, (select language_id from public.language where upper(name) = upper(language_name)));
+	else 
+		insert into public.film (title, release_year, language_id)
+		values (movie_title, release_year, (select language_id from public.language where upper(name) = 'KLINGON'));
 	end if;
-	-- if all exception are passed insert into table 
-	insert into public.film (title, release_year, language_id)
-    values (
-		movie_title,
-		release_year2,
-		(select language_id 
-		from public.language 
-		where upper(name) = upper(language_name))
-	);
 end;
 $function$;
 
 
-select new_movie ('Test7'::text, 2023::year, 'English'::bpchar(20))
-
-select *
-from film
-where title = 'Test7'
+select new_movie (movie_title := 'Test15'::text, release_year := 2010::integer, language_name :='erwrwr'::bpchar(20))
 
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
