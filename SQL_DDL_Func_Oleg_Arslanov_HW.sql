@@ -14,6 +14,7 @@
 --The view should only display categories with at least one sale in the current quarter. 
 --Note: when the next quarter begins, it will be considered as the current quarter.
 
+
 -- this view is for fixed date 2017-01-24 because in DB we dont have data for current date
 create or replace view sales_revenue_by_category_qtr as
 select c.name as film_category, sum(amount) as revenue
@@ -23,41 +24,60 @@ from public.category c
  	inner join public.inventory i on i.film_id = f.film_id
  	inner join public.rental r on r.inventory_id = i.inventory_id
  	inner join public.payment p on p.rental_id = r.rental_id
-where 
-	(extract(month from date '2017-01-24') between 10 and 12 and date(payment_date) between to_date(extract(year from date '2017-01-24') || '-10-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from date '2017-01-24') || '-12-31', 'yyyy-mm-dd'))
-	or (extract(month from date '2017-01-24') between 07 and 09 and date(payment_date) between to_date(extract(year from date '2017-01-24') || '-07-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from date '2017-01-24') || '-09-30', 'yyyy-mm-dd'))
-	or (extract(month from date '2017-01-24') between 04 and 06 and date(payment_date) between to_date(extract(year from date '2017-01-24') || '-04-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from date '2017-01-24') || '-06-30', 'yyyy-mm-dd'))
-	or (extract(month from date '2017-01-24') between 01 and 03 and date(payment_date) between to_date(extract(year from date '2017-01-24') || '-01-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from date '2017-01-24') || '-03-31', 'yyyy-mm-dd'))
+-- zdes ja ispolzuju filtr dlja togo ctob po current_date poluchit period vremeni chetvert goda. Ispolzuja filtr where
+-- ja vybyraju period between nacalnoj datoj and datoj konca opredelennoj chetverti. Chtob poluchit datu nachala ja ispolzuju 
+-- extract iz daty po mesiacu, togda prichisliaju mesiac k opredelennoj chetverti i s pomoschju to_date formiruju datu nachalo chetverti.
+-- pohozee delaju s datoj konca chetverti. V konce koncov filtr dast vozmozhnost pokazat tolko filmy s opredelenoj chetverti goda  	
+where
+	p.payment_date between 
+	case
+		when extract(month from date '2017-01-24') between 10 and 12 then to_date(extract(year from date '2017-01-24') || '-10-01', 'yyyy-mm-dd') 
+		when extract(month from date '2017-01-24') between 07 and 09 then to_date(extract(year from date '2017-01-24') || '-07-01', 'yyyy-mm-dd')
+		when extract(month from date '2017-01-24') between 04 and 06 then to_date(extract(year from date '2017-01-24') || '-04-01', 'yyyy-mm-dd')
+		else to_date(extract(year from date '2017-01-24') || '-01-01', 'yyyy-mm-dd')
+	end and
+	case
+		when extract(month from date '2017-01-24') between 10 and 12 then to_date(extract(year from date '2017-01-24') || '-12-31', 'yyyy-mm-dd')
+		when extract(month from date '2017-01-24') between 07 and 09 then to_date(extract(year from date '2017-01-24') || '-09-30', 'yyyy-mm-dd')
+		when extract(month from date '2017-01-24') between 04 and 06 then to_date(extract(year from date '2017-01-24') || '-06-30', 'yyyy-mm-dd')
+		else to_date(extract(year from date '2017-01-24') || '-03-31', 'yyyy-mm-dd')
+	end
 group by c.name
 having count(amount)>=1;
---added here having for having one ore more rentals
 
 
 -- I did that function for current date, but it not return rows ... I think because in previous HW I dont added data at category and film_category tables
 create or replace view sales_revenue_by_category_qtr as
-select c.name as film_category, sum(amount) as revenue
-from public.category c
- 	inner join public.film_category fc on c.category_id = fc.category_id
- 	inner join public.film f on fc.film_id = f.film_id
- 	inner join public.inventory i on i.film_id = f.film_id
- 	inner join public.rental r on r.inventory_id = i.inventory_id
- 	inner join public.payment p on p.rental_id = r.rental_id
+select 
+c.name as film_category, 
+sum(p.amount) as revenue
+from 
+public.category c
+inner join public.film_category fc on c.category_id = fc.category_id
+inner join public.film f on fc.film_id = f.film_id
+inner join public.inventory i on i.film_id = f.film_id
+inner join public.rental r on r.inventory_id = i.inventory_id
+inner join public.payment p on p.rental_id = r.rental_id
+--zdes ja ispolzuju filtr dlja togo ctob po current_date poluchit period vremeni chetvert goda. Ispolzuja filtr where
+-- ja vybyraju period between nacalnoj datoj and datoj konca opredelennoj chetverti. Chtob poluchit datu nachala ja ispolzuju 
+-- extract iz daty po mesiacu, togda prichisliaju mesiac k opredelennoj chetverti i s pomoschju to_date formiruju datu nachalo chetverti.
+-- pohozee delaju s datoj konca chetverti. V konce koncov filtr dast vozmozhnost pokazat tolko filmy s opredelenoj chetverti goda 
 where 
-	(extract(month from current_date) between 10 and 12 and date(payment_date) between to_date(extract(year from current_date) || '-10-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from current_date) || '-12-31', 'yyyy-mm-dd'))
-	or (extract(month from current_date) between 07 and 09 and date(payment_date) between to_date(extract(year from current_date) || '-07-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from current_date) || '-09-30', 'yyyy-mm-dd'))
-	or (extract(month from current_date) between 04 and 06 and date(payment_date) between to_date(extract(year from current_date) || '-04-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from current_date) || '-06-30', 'yyyy-mm-dd'))
-	or (extract(month from current_date) between 01 and 03 and date(payment_date) between to_date(extract(year from current_date) || '-01-01', 'yyyy-mm-dd') 
-	and to_date(extract(year from current_date) || '-03-31', 'yyyy-mm-dd'))
-group by c.name
-having count(amount)>=1;
---added here having for having one ore more rentals
+p.payment_date between 
+case 
+	when extract(month from current_date) between 10 and 12 then to_date(extract(year from current_date) || '-10-01', 'yyyy-mm-dd')
+	when extract(month from current_date) between 07 and 09 then to_date(extract(year from current_date) || '-07-01', 'yyyy-mm-dd')
+	when extract(month from current_date) between 04 and 06 then to_date(extract(year from current_date) || '-04-01', 'yyyy-mm-dd')
+	else to_date(extract(year from current_date) || '-01-01', 'yyyy-mm-dd')
+end and 
+case 
+	when extract(month from current_date) between 10 and 12 then to_date(extract(year from current_date) || '-12-31', 'yyyy-mm-dd')
+	when extract(month from current_date) between 07 and 09 then to_date(extract(year from current_date) || '-09-30', 'yyyy-mm-dd')
+	when extract(month from current_date) between 04 and 06 then to_date(extract(year from current_date) || '-06-30', 'yyyy-mm-dd')
+	else to_date(extract(year from current_date) || '-03-31', 'yyyy-mm-dd')
+end
+group by 
+c.name;
 
 select * from sales_revenue_by_category_qtr;
 
@@ -66,12 +86,10 @@ select * from sales_revenue_by_category_qtr;
 --Create a query language function called 'get_sales_revenue_by_category_qtr' that accepts one parameter representing the current quarter
 --and year and returns the same result as the 'sales_revenue_by_category_qtr' view.
 
-
+--create function with one input parametr
 create or replace function get_sales_revenue_by_category_qtr (in input_date date)
-returns table (
-	film_category text,
-	revenue numeric
-)
+--ustanavlivaem format vozvrata kak tablicu
+returns table (film_category text, revenue numeric)
 as $$
 select 
 	c.name as film_category,
@@ -84,15 +102,18 @@ from
  	inner join public.rental r on r.inventory_id = i.inventory_id
  	inner join public.payment p on p.rental_id = r.rental_id
 where 
-	case
-		when extract(month from input_date) between 10 and 12 then date(payment_date) between to_date(extract(year from input_date) || '-10-01', 'yyyy-mm-dd') 
-		and to_date(extract(year from input_date) || '-12-31', 'yyyy-mm-dd')
-		when extract(month from input_date) between 07 and 09 then date(payment_date) between to_date(extract(year from input_date) || '-07-01', 'yyyy-mm-dd') 
-		and to_date(extract(year from input_date) || '-09-30', 'yyyy-mm-dd')
-		when extract(month from input_date) between 04 and 06 then date(payment_date) between to_date(extract(year from input_date) || '-04-01', 'yyyy-mm-dd') 
-		and to_date(extract(year from input_date) || '-06-30', 'yyyy-mm-dd')
-		when extract(month from input_date) between 01 and 03 then date(payment_date) between to_date(extract(year from input_date) || '-01-01', 'yyyy-mm-dd') 
-		and to_date(extract(year from input_date) || '-03-31', 'yyyy-mm-dd')
+p.payment_date between
+	case 
+		when extract(month from input_date) between 10 and 12 then to_date(extract(year from input_date) || '-10-01', 'yyyy-mm-dd')
+		when extract(month from input_date) between 07 and 09 then to_date(extract(year from input_date) || '-07-01', 'yyyy-mm-dd')
+		when extract(month from input_date) between 04 and 06 then to_date(extract(year from input_date) || '-04-01', 'yyyy-mm-dd')
+		else to_date(extract(year from input_date) || '-01-01', 'yyyy-mm-dd')
+	end and 
+	case 
+		when extract(month from input_date) between 10 and 12 then to_date(extract(year from input_date) || '-12-31', 'yyyy-mm-dd')
+		when extract(month from input_date) between 07 and 09 then to_date(extract(year from input_date) || '-09-30', 'yyyy-mm-dd')
+		when extract(month from input_date) between 04 and 06 then to_date(extract(year from input_date) || '-06-30', 'yyyy-mm-dd')
+		else to_date(extract(year from input_date) || '-03-31', 'yyyy-mm-dd')
 	end
 group by c.name
 having count(amount) >=1
@@ -101,7 +122,6 @@ language sql;
 
 
 select * from get_sales_revenue_by_category_qtr ('2017-01-24')
-
 
 
 --Task 3. Create procedure language functions
@@ -273,47 +293,55 @@ from get_films_in_stock_by_title2('%love%');
 -- if we insert no language we got raise exception and can not add to db 
 
 
-drop function if exists new_movie(text, year, bpchar);
-
--- so I added new language in table
-insert into public.language (name)
-values ('Klingon');
-
-
 create or replace function new_movie (
 	movie_title text,
-	release_year year default extract(year from current_date)::integer,
-	language_name bpchar(20) default 'Klingon'
+	movie_release_year year default extract(year from current_date)::integer,
+	movie_language_name bpchar(20) default 'Klingon'
 	)
 returns void
 language plpgsql
 as $function$
 begin
-	-- check if film exists in the DB
-    if exists (select 1 from public.film where title = movie_title
+-- check if film exists in the DB
+    if exists (select 1 from public.film where upper(title) = upper(movie_title)
 	) then
 		raise exception 'Film "%" already exists in the DB!', movie_title;
     end if;
-    -- if language exists add with language from table, else add Klingon :)
-	if exists (
-		select 1
-		from public.language
-		where upper(name) = upper(language_name)
-	) then 
+-- check if language name in language table if not add
+	if not exists (select 1 from public.language where upper(name) = upper(movie_language_name))
+	then	
+		insert into public.language (name)
+		values ('klingon');	
+	end if;
+-- esli est jazyk v language dobavliaem v film, a esli netu to dobavliaem klingon id iz language table
+	if exists 
+		(select 1 from public.language where upper(name) = upper(movie_language_name))
+	then
 		insert into public.film (title, release_year, language_id)
-		values (movie_title, release_year, (select language_id from public.language where upper(name) = upper(language_name)));
+		values (movie_title, movie_release_year, (select language_id from public.language where upper(name) = upper(movie_language_name)));
 	else 
 		insert into public.film (title, release_year, language_id)
-		values (movie_title, release_year, (select language_id from public.language where upper(name) = 'KLINGON'));
-	end if;
+		values (movie_title, movie_release_year, (select language_id from public.language where upper(name) = 'KLINGON'));
+	end if; 	
 end;
 $function$;
 
 
-select new_movie (movie_title := 'Test15'::text, release_year := 2010::integer, language_name :='erwrwr'::bpchar(20))
+--dlja proverki ... u menja rabotaet
+select new_movie ('Test143', 2010, 'lish');
+select new_movie ('Test140', 2010);
+select new_movie ('Test130');
+select new_movie ('Test123', 2020, 'english');
+select new_movie (movie_title:='Test134', movie_language_name:='english');
+select * from public.film
 
 
- 
+
+
+
+
+
+
  
  
  
