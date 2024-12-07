@@ -1,0 +1,56 @@
+--Task 1. Figure out what security precautions are already used in your 'dvd_rental' database.  Prepare description
+
+--check privilege correctly granted for table
+SELECT grantee, privilege_type
+FROM information_schema.role_table_grants
+WHERE table_name = 'rental'
+  AND table_schema = 'public';
+
+SELECT grantee, table_catalog, table_schema, table_name, privilege_type
+FROM information_schema.role_table_grants
+WHERE table_catalog = 'dvdrental';
+
+
+
+-- Check the existing users and their roles
+SELECT rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolreplication, rolbypassrls
+FROM pg_roles;
+
+
+-- Table-level privileges
+SELECT * 
+FROM information_schema.table_privileges
+WHERE table_catalog = 'dvd_rental';
+
+
+-- access control lists ... no access (I did that task latest so I dont know now there was before for user postres to table inventory maded by postgres user) 
+SELECT relname, relacl 
+FROM pg_class 
+WHERE relname IN (SELECT table_name FROM information_schema.tables WHERE table_schema = 'public');
+
+
+-- Check if RLS is enabled ... row level security is not enabled
+SELECT relname, relrowsecurity 
+FROM pg_class 
+WHERE relrowsecurity = true;
+
+-- Check RLS policies ..not
+SELECT * 
+FROM pg_policies 
+WHERE schemaname = 'public';
+
+
+--Check if SSL/TLS is enabled for secure communication ... it is off
+SHOW ssl;
+
+--review the logging settings to ensure audit trails are maintained ... in this case all is of
+SHOW log_statement;
+show log_duration;
+
+
+-- sql query to retrieve priveleges granted to user
+SELECT grantee, privilege_type 
+FROM information_schema.role_table_grants 
+WHERE table_name = 'rental' 
+AND table_schema = 'public' 
+AND grantee = 'postgres';
