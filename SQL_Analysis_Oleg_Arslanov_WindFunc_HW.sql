@@ -29,7 +29,7 @@ with new_table as (
 	group by channel_desc, cust_id, cust_first_name, cust_last_name
 	)
 --query from CTE
-	select 
+select 
 	cust_id,
 	cust_first_name || ' ' || cust_last_name as cust_full_name,
 	channel_desc,
@@ -49,11 +49,11 @@ order by channel_desc, row_num;
 --Display the result in descending order of 'YEAR_SUM'
 --For this report, consider exploring the use of the crosstab function. Additional details and guidance can be found at this link
 
---1 variant with view
 
---added tablefunc for change rows to columns in tables
+--added tablefunc extenssion (for change rows to columns in tables)
 create extension if not exists tablefunc;
 
+--create view
 create or replace view temp_ranked as
 	select 
 		prod_name,
@@ -80,6 +80,7 @@ select
 	prod_name,
 	Japan,
 	Singapore,
+	--
 	to_char(round(sum(coalesce(japan, 0) + coalesce(singapore, 0)) over (partition by prod_name), 2),'FM999999999.00') as year_sum
 from (
 -- used function crosstab for create cross table
@@ -91,71 +92,6 @@ from (
 ) as subquery;
 
 
---2 variant with temp table
-with 
-	new_table as (
-	select 
-		p.prod_id, 
-		p.prod_name,
-		p.prod_category,
-		c.country_id, 
-		c.country_name, 
-		c.country_region_id, 
-		c.country_region, 
-		s.amount_sold, 
-		s.time_id
-	from sh.sales s
-	inner join sh.products p on s.prod_id = p.prod_id
-	inner join sh.customers cust on s.cust_id = cust.cust_id
-	inner join sh.countries c on c.country_id = cust.country_id
-),
-	ranked_table as (
-	select 
-		prod_name,
-		country_name,
-		-- for correctly formating use func to_char for format to 2 decimal after comma
-		round(sum(amount_sold), 2) as total_amount
-	from new_table
-	where extract(year from time_id) = 2000 and country_region = 'Asia' and prod_category = 'Photo'
-	group by prod_name, country_name
-	)
-insert into temp_ranked_table (prod_name, country_name, total_amount)
-select prod_name, country_name, total_amount
-from ranked_table
-where (prod_name, country_name) not in (
-select prod_name, country_name
-from temp_ranked_table
-);	
-
---create temp table (for later use in crosstab, because can not use CTE inside)
-create temp table if not exists temp_ranked_table (
-	prod_name varchar(50),
-	country_name varchar (40),
-	total_amount numeric
-);
-	
---added tablefunc for change rows to columns in tables
-create extension if not exists tablefunc;
-
---create answer table sales by countries
-select 
-	prod_name,
-	Japan,
-	Singapore,
-	sum(coalesce(japan, 0) + coalesce(singapore, 0)) over (partition by prod_name) as year_sum
-from (
--- used function crosstab for create cross table
-	select *
-	from crosstab (
-	--in first query we need all column from result table ... using ORDER BY ensures that the distinct products are listed in alphabetical order (toest esli ukazal parametr on uze ne budet imet dublikatov)
-		'select prod_name, country_name, total_amount from temp_ranked_table order by 1, 2',
-	--in second query we vybiraem zagolovki columns, kotoryje budut otobrazatsja v novoj peredelannoj tablice	
-		'select distinct country_name from temp_ranked_table order by 1'
-	) as ct(prod_name varchar(50), Japan numeric, Singapore numeric)
-) as subquery;
-
-
-
 --Task 3
 --Create a query to generate a sales report for customers ranked in the top 300 based on total sales in the years
 -- 1998, 1999, and 2001. The report should be categorized based on sales channels, and separate calculations should be performed for each channel.
@@ -165,34 +101,50 @@ from (
 --Include in the report only purchases made on the channel specified
 --Format the column so that total sales are displayed with two decimal places
 
+--create CTE   
+with ranking_table as(
+select 
+    cus.cust_id,
+    cus.cust_last_name,
+    cus.cust_first_name,
+    c.channel_desc,
+    extract (year from time_id) as years,  --extract years from dates
+    sum(s.amount_sold) as amount_sold,  --sum by grouping by customer, channel, year
+    dense_rank() over(partition by c.channel_desc, extract (year from time_id) order by sum(s.amount_sold) desc) as rnk  -- ranking without gaps
+from 
+    sh.sales s 
+    inner join sh.customers cus on cus.cust_id = s.cust_id 
+    inner join sh.channels c on c.channel_id = s.channel_id
+where 
+    extract (year from time_id) in (1998, 1999, 2001) --customer be in top300 for one time in 1998 or/and 1999 or/and 2001
+group by 
+    cus.cust_id,
+    c.channel_desc,
+    extract (year from time_id)
+)
+--query from ranking_table    
+select 
+    cust_id,
+    cust_last_name,
+    cust_first_name,
+    channel_desc,
+    to_char(sum(amount_sold), '999999999.99') as amount_sold --sum by grouping customer, channel and format to text with nice two decimals after point
+from 
+    ranking_table
+where 
+    rnk <= 300
+group by 
+    cust_id,
+    cust_last_name,
+    cust_first_name,
+    channel_desc
+having 
+    count(years) = 3  --customers must be in all 1998 and 1999 and 2001 years 
+order by 
+    amount_sold desc;
 
---query for all channels for top300 clients
-select
-	years,
-	channel_desc,
-	cust_last_name,
-	cust_first_name,
-	amount_sold,
-	row_number
-from (
-	select 
-		extract (year from time_id) as years,
-		channel_desc,
-		cust_last_name,
-		cust_first_name,
-		amount_sold,
---divide by channel and sort desc by amount
-		row_number() over (partition by channel_desc order by amount_sold desc) as row_number
-	from sh.sales s
-	inner join sh.channels ch on s.channel_id = ch.channel_id
-	inner join sh.customers c on s.cust_id = c.cust_id
-	where extract (year from time_id) in (1998, 1999, 2001)
-	) as subquery
--- how many rows needed	
-where row_number <= 300;
 
-
-
+-- it is no needed in this Task, but I hold it for future
 --create func for get top300 by channel specified
 create or replace function sh.channel_top300_cust (channel_desc_in varchar(20))
 returns table (
@@ -245,8 +197,8 @@ select * from sh.channel_top300_cust('Direct Sales');
 create or replace view prod_region_date as
 	select 
 		extract (year from s.time_id) || '-' || extract (month from s.time_id) as year_month,
-		country_region as region,
 		prod_category,
+		country_region as region,
 		sum(amount_sold) as total_sale
 	from 
 		sh.sales as s
@@ -268,9 +220,9 @@ create or replace view prod_region_date as
 	from (
 	select 
 		year_month,
-		prod_category,
-		total_sale as europa,
+		prod_category,	
 		lag(total_sale) over (partition by year_month, prod_category order by region) as americas,
+		total_sale as europa,
 		sum(total_sale) over (partition by year_month, prod_category order by region) as total
 	from prod_region_date
 ) as subquery
@@ -278,58 +230,60 @@ where americas is not null;
 	
 	
 	
---2 variant. here I probe do it with crosstab ... and something wrong	
+--2 variant. here I did it with crosstab :) 
 
---create view
-create or replace view prod_region_date as
-	select 
-		extract (year from s.time_id) || '-' || extract (month from s.time_id) as year_month,
-		country_region as region,
-		prod_category,
-		sum(amount_sold) as total_sale
-	from 
-		sh.sales as s
-		inner join sh.customers cust on s.cust_id = cust.cust_id 
-		inner join sh.countries c on c.country_id = cust.country_id
-		inner join sh.products p on p.prod_id = s.prod_id
-	where 
-		extract (year from s.time_id) = 2000 and
-		extract (month from s.time_id) in (1, 2, 3) and
-		country_region in ('Europe', 'Americas')
-	group by
-		extract (year from s.time_id),
-		extract (month from s.time_id),
-		country_region,
-		prod_category;
-
---something wrong here ... doubling and nulls
-select *
+with 
+	prod_region_date as (
+		select 
+			extract (year from s.time_id) || '-' || extract (month from s.time_id) as year_month,
+			prod_category,
+			country_region as region,
+			sum(amount_sold) as total_sale
+		from 
+			sh.sales as s
+			inner join sh.customers cust on s.cust_id = cust.cust_id 
+			inner join sh.countries c on c.country_id = cust.country_id
+			inner join sh.products p on p.prod_id = s.prod_id
+		where 
+			extract (year from s.time_id) = 2000 and
+			extract (month from s.time_id) in (1, 2, 3) and
+			country_region in ('Europe', 'Americas')
+		group by
+			extract (year from s.time_id),
+			extract (month from s.time_id),
+			country_region,
+			prod_category
+),
+	crosstab_null as (
+		select *
+		from 
+			crosstab(
+			--in first query we need all column from result table ... using ORDER BY ensures that the distinct products are listed in alphabetical order (toest esli ukazal parametr on uze ne budet imet dublikatov)
+			'SELECT year_month, prod_category, region, total_sale FROM prod_region_date ORDER BY prod_category, region, year_month',
+			--in second query we choose columns for new table (vybiraem zagolovki columns, kotoryje budut otobrazatsja v novoj peredelannoj tablice)
+			'SELECT DISTINCT region FROM prod_region_date ORDER BY region'
+			) as ct(year_month varchar, prod_category varchar, Americas numeric(10, 2), Europe numeric(10, 2))
+)
+select 
+	year_month,
+	prod_category,
+	sum(coalesce(Americas, 0)) as Americas,
+	sum(coalesce(Europe, 0)) as Europe
 from 
-crosstab(
---in first query we need all column from result table ... using ORDER BY ensures that the distinct products are listed in alphabetical order (toest esli ukazal parametr on uze ne budet imet dublikatov)
-'SELECT year_month, prod_category, region, total_sale FROM prod_region_date ORDER BY prod_category, region',
---in second query we vybiraem zagolovki columns, kotoryje budut otobrazatsja v novoj peredelannoj tablice
-'SELECT DISTINCT region FROM prod_region_date ORDER BY region'
-) as ct(year_month varchar, prod_category varchar, Americas numeric(10, 2), Europe numeric(10, 2));
-	
+	crosstab_null
+group by year_month, prod_category
+order by year_month, prod_category;
 
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 
+
+
+
+
+
+
+	
+--------------------------------------------------------------------
 --Here my drafts ... not execute :)
 --simple primer crosstab
 CREATE TABLE sales (
@@ -345,21 +299,75 @@ VALUES
 	('Bob', 'Apples', 20),
 	('Bob', 'Oranges', 40),
 	('Charlie', 'Apples', 70),
-	('Charlie', 'Oranges', 60);
-
-INSERT INTO sales (salesperson, product, sales_amount)
-VALUES
+	('Charlie', 'Oranges', 60),
 	('Alice', 'Banana', 100);
 
+select *
+from sales;
 
 -- Используем функцию crosstab для создания перекрестной таблицы
 SELECT *
 FROM crosstab(
-	'SELECT salesperson, product, sales_amount FROM sales ORDER BY 2',
-	'SELECT DISTINCT product FROM sales ORDER BY 1'
-) AS ct(salesperson VARCHAR(50), apples NUMERIC, arbuz numeric, arbuz2 numeric, oranges numeric, banana numeric);
+	--berem tablicu s kotoroj budem peredelyvat ...v order by ukazyvaju obiazatelno kakoj poriadok
+	'SELECT salesperson, product, sales_amount FROM sales order by salesperson, product',
+	--berem atribut s tablicy 'sales', kotoryj budem perekladyvat vverh, chtob svesti vse nu skazem apples
+	'SELECT DISTINCT product FROM sales ORDER BY product'
+	--zdes cetko ukazyvaem poriadok vseh nashih novyh stolbcov
+) AS ct(salesperson VARCHAR(50), apples NUMERIC, arbuz numeric, arbuz2 numeric, banana numeric, oranges numeric);
+
+	
+	
+-------------------------------------------
+--one more example
+CREATE TABLE sales5 (
+    salesperson VARCHAR(50),
+    product VARCHAR(50),
+    quantity INT,
+    total_sales NUMERIC
+);
+
+INSERT INTO sales5 (salesperson, product, quantity, total_sales) VALUES
+('Alice', 'Apples', 10, 100.0),
+('Alice', 'Bananas', 15, 150.0),
+('Bob', 'Apples', 20, 200.0),
+('Bob', 'Bananas', 25, 250.0),
+('Charlie', 'Apples', 30, 300.0),
+('Charlie', 'Bananas', 35, 350.0);
 
 
+WITH quantity_data AS (
+    SELECT * 
+    FROM crosstab(
+        $$SELECT salesperson, product, quantity
+          FROM sales5
+          ORDER BY salesperson, product$$,
+        $$SELECT DISTINCT product FROM sales5 ORDER BY product$$
+    ) AS ct (
+        salesperson VARCHAR(50), apples_quantity INT, bananas_quantity INT
+    )
+),
+sales_data AS (
+    SELECT * 
+    FROM crosstab(
+        $$SELECT salesperson, product, total_sales
+          FROM sales5
+          ORDER BY salesperson, product$$,
+        $$SELECT DISTINCT product FROM sales5 ORDER BY product$$
+    ) AS ct (
+        salesperson VARCHAR(50), apples_total_sales NUMERIC, bananas_total_sales NUMERIC
+    )
+)
+SELECT 
+    q.salesperson,
+    q.apples_quantity,
+    s.apples_total_sales,
+    q.bananas_quantity,
+    s.bananas_total_sales
+FROM quantity_data q
+JOIN sales_data s USING (salesperson);
+
+
+-------------------------------------------------
 -- funkcija
 create or replace function get_product_prices(in salesperson_in varchar, out sales_amounts numeric []
 ) as $$
