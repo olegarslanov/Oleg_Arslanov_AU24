@@ -1,3 +1,3 @@
 
-This EPAM course stage1 !
+Here is EPAM stage1 course  !
 
