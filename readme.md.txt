@@ -1,1 +1,0 @@
-STAGE2 EPAM 
