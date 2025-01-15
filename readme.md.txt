@@ -1,1 +1,1 @@
-stage 1 SQL DB
+EPAM DB studies
