@@ -1,15 +1,15 @@
 PASSING_GRADE = 8
 
 class Trainee:
-    visited_lectures = 0
-    done_home_tasks = 0
-    missed_lectures = 0
-    missed_home_tasks = 0
-    mark = 0
 
     def __init__(self, name, surname):
         self.name = name
         self.surname = surname
+        self.visited_lectures = 0
+        self.done_home_tasks = 0
+        self.missed_lectures = 0
+        self.missed_home_tasks = 0
+        self.mark = 0
 
     def visit_lecture(self):
         self.visited_lectures += 1
@@ -20,11 +20,11 @@ class Trainee:
         self._add_points(2)
 
     def miss_lecture(self):
-        self.missed_lectures += 1
+        self.missed_lectures -= 1
         self._subtract_points(1)
 
     def miss_homework(self):
-        self.missed_home_tasks += 2
+        self.missed_home_tasks -= 2
         self._subtract_points(2)
 
     def _add_points(self, points: int):
