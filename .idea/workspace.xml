@@ -5,9 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="99e14936-a422-41b6-9eb6-e083c171474e" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Python-Course/Code_samples/Python exception.py" beforeDir="false" afterPath="$PROJECT_DIR$/Python-Course/Code_samples/Python exception.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Python-Course/Code_samples/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/Python-Course/Code_samples/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -31,7 +29,8 @@
     "Python.test.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true"
+    "ignore.virus.scanning.warn.message": "true",
+    "last_opened_file_path": "C:/Users/olegA/projects/Oleg_Arslanov_AU24"
   }
 }]]></component>
   <component name="SharedIndexes">
