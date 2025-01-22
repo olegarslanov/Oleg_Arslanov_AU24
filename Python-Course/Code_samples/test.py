@@ -1,14 +1,38 @@
-def task_5():
-    a, b = input("Vvedite dve cifry oi duhi cerez probel:").split()
-    try:
-        x = int(a)/int(b)
-    except ZeroDivisionError:
-        print("Can't divide by zero")
-    except ValueError:
-        print("Entered value is wrong")
-    else:
-        print(x)
-    finally:
-        print("Vsio")
 
-task_5()
+
+
+
+
+
+
+
+
+
+a = 'global'
+
+
+def outer_function():
+    a = 'local'
+    print("Внешняя функция")
+    print(locals())
+    print(globals())
+
+    def inner_function():
+        a = 'podlocal'
+        print("Вложенная функция")
+        print(locals())
+        print(globals())
+
+    inner_function()
+
+print(locals())
+print(globals())
+
+# Вызов внешней функции
+outer_function()
+
+
+
+
+
+
