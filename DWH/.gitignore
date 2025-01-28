@@ -1,5 +1,9 @@
 # Default ignored files
 /.idea/
+<<<<<<< HEAD
+*csv
+=======
 DWH/Task1/python_code_for_my_tables_modify/green_taxi_data.csv
 *.csv
 
+>>>>>>> 31f31bc254565a2ae04871947ff013816e237a47
