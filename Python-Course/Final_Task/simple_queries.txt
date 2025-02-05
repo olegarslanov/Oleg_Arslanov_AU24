@@ -1,3 +1,0 @@
-golden dataset
-hello
-obi-van
