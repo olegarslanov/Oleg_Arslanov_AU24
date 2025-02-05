@@ -1,4 +1,3 @@
 # Default ignored files
 /.idea/
-/Python-Course/
-/STAGE1/
+*.csv
