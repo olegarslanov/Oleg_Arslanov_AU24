@@ -1,0 +1,14 @@
+Quick guide on how to combine the split parts back into the original file using 7-Zip:
+
+Steps to Combine Split Parts:
+Place all parts in the same folder:
+Make sure all split files (e.g., my_file.zip.001, my_file.zip.002, etc.) are in one folder.
+
+Right-click the first part:
+
+Right-click the file with the .001 extension (e.g., my_file.zip.001).
+
+Select 7-Zip → Extract Here.
+
+Wait for the process to complete:
+7-Zip will automatically combine all parts and extract the original file.
