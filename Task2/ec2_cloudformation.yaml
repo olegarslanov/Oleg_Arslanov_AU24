@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EC2 instance created by CloudFormation with existing Security Group
+
+Parameters:
+  KeyName:
+    Description: EC2 KeyPair for SSH access
+    Type: AWS::EC2::KeyPair::KeyName
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t3.micro
+
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: ami-0faab6bdbac9486fb  # Amazon Linux 2 (eu-central-1)
+      SecurityGroupIds:
+        - sg-0eef0ca0a93218175       # existing sg epam-west_eu
+      Tags:
+        - Key: Name
+          Value: student_oleg_arslanov_from_cf
+        - Key: owner
+          Value: student
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 8
+            VolumeType: gp2
