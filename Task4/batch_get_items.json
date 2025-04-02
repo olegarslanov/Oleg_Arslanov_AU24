@@ -1,0 +1,11 @@
+{
+  "student56_items": {
+    "Keys": [
+      { "item_id": { "S": "item01" } },
+      { "item_id": { "S": "item02" } },
+      { "item_id": { "S": "item03" } },
+      { "item_id": { "S": "item04" } },
+      { "item_id": { "S": "item05" } }
+    ]
+  }
+}
