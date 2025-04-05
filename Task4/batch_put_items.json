@@ -1,0 +1,25 @@
+{
+  "student56_items": [
+    { "PutRequest": { "Item": { "item_id": { "S": "item01" }, "name": { "S": "Notebook" }, "price": { "N": "4.99" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item02" }, "name": { "S": "Pencil" }, "price": { "N": "0.99" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item03" }, "name": { "S": "Eraser" }, "price": { "N": "1.25" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item04" }, "name": { "S": "Pen" }, "price": { "N": "2.50" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item05" }, "name": { "S": "Marker" }, "price": { "N": "3.40" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item06" }, "name": { "S": "Scissors" }, "price": { "N": "6.25" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item07" }, "name": { "S": "Tape" }, "price": { "N": "1.50" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item08" }, "name": { "S": "Glue" }, "price": { "N": "2.10" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item09" }, "name": { "S": "Stapler" }, "price": { "N": "5.00" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item10" }, "name": { "S": "Sharpener" }, "price": { "N": "1.20" } } } },
+
+    { "PutRequest": { "Item": { "item_id": { "S": "item11" }, "name": { "S": "Highlighter" }, "price": { "N": "2.75" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item12" }, "name": { "S": "Folder" }, "price": { "N": "3.50" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item13" }, "name": { "S": "Ruler" }, "price": { "N": "1.10" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item14" }, "name": { "S": "Clip" }, "price": { "N": "0.50" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item15" }, "name": { "S": "Board" }, "price": { "N": "8.99" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item16" }, "name": { "S": "Brush" }, "price": { "N": "4.80" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item17" }, "name": { "S": "Paint" }, "price": { "N": "7.00" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item18" }, "name": { "S": "Chalk" }, "price": { "N": "1.75" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item19" }, "name": { "S": "Binder" }, "price": { "N": "6.40" } } } },
+    { "PutRequest": { "Item": { "item_id": { "S": "item20" }, "name": { "S": "Calendar" }, "price": { "N": "3.20" } } } }
+  ]
+}
