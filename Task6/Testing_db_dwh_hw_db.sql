@@ -180,7 +180,7 @@ WHERE c.client_id IS NULL and p.product_id IS NULL and ch.channel_id IS NULL;
 
 
 ---------------------------
---2. Testing (try to find additional bugs/issues)
+--2. Testing (try to find additional bugs/issues, not by Test cases plan)
 
 
 -- first we check default values
@@ -229,23 +229,386 @@ where location_src_id != 'N/A';
 --result: error 15 entities is not N/A fro ms1 system
 
 
+--check if middle_name value 'N/A' always from s2 system
+select count(*) 
+from dwh_clients dc
+join s2_clients sc on sc.client_id = dc.client_src_id
+where middle_name != 'N/A';
+
+--result : no errors
+
+
+--check if phone_number value phone_code || phone_number always from s2 system
+select count(*) 
+from dwh_clients dc
+join s2_clients sc on sc.client_id = dc.client_src_id
+where dc.phone_number != sc.phone_code || sc.phone_number;
+
+--select sc.phone_code || sc.phone_number from s2_clients sc;
+
+--result : no errors
+
+
+--PK/FK not NULL
+select *
+from dwh_clients dc 
+where client_id is null or client_src_id is null;
+
+select *
+from dwh_sales 
+where sale_id is null or client_id is null or channel_id is null or product_id is null;
+
+select *
+from dwh_products
+where product_id is null or product_src_id is null;
+
+select *
+from dwh_channels
+where channel_id is null or channel_src_id is null or location_id is null;
+
+select *
+from dwh_locations
+where location_id is null or location_src_id is null;
+
+--result: no errors
+
+
+--Check for distinct values in source
+--check distinct values from s1 system
+select channel_id, count(*)
+from s1_channels
+group by channel_id
+having count(*) > 1;
+
+select client_id, count(*)
+from s1_clients
+group by client_id
+having count(*) > 1;
+
+select client_id, channel_id, sale_date, units, product_id, purchase_date, count(*)
+from s1_sales
+group by client_id, channel_id, sale_date, units, product_id, purchase_date
+having count(*) > 1;
+
+select product_id, count(*)
+from s1_products sp 
+group by product_id
+having count(*) > 1;
+
+--check distinct values from s2 system
+select client_id, count(*)
+from s2_clients
+group by client_id
+having count(*) > 1;
+
+select client_id, sold_date, product_id, count(*)
+from s2_client_sales
+group by client_id, sold_date, product_id
+having count(*) > 1;
+
+select channel_id, count(*)
+from s2_channels
+group by channel_id
+having count(*) > 1;
+
+
+select location_id, count(*)
+from s2_locations
+group by location_id
+having count(*) > 1;
+
+
+--result: no errors
+
+
+--check distinct values from DWH system
+select client_src_id, count(*)
+from dwh_clients
+group by client_src_id
+having count(*) > 1;
+
+select client_id, count(*)
+from dwh_clients
+group by client_id
+having count(*) > 1;
+
+select sale_id, count(*)
+from dwh_sales
+group by sale_id
+having count(*) > 1;
+
+select product_id, count(*)
+from dwh_products
+group by product_id
+having count(*) > 1;
+
+select product_src_id, count(*)
+from dwh_products
+group by product_src_id
+having count(*) > 1;
+
+select channel_id, count(*)
+from dwh_channels
+group by channel_id
+having count(*) > 1;
+
+select channel_src_id, count(*)
+from dwh_channels
+group by channel_src_id
+having count(*) > 1;
+
+select location_id, count(*)
+from dwh_locations
+group by location_id
+having count(*) > 1;
+
+select location_src_id, count(*)
+from dwh_locations
+group by location_src_id
+having count(*) > 1;
+
+
+--check dwh_locations location_name column
+
+-- distinct_s1 + distinct_s2 с distinct_dwh
+SELECT
+  dwh_count,
+  s1_count,
+  s2_count,
+  (s1_count + s2_count) AS total_sources,
+  CASE
+    WHEN dwh_count = s1_count + s2_count THEN 'MATCH'
+    ELSE 'MISMATCH'
+  END AS result
+FROM (
+  SELECT
+    (SELECT COUNT(DISTINCT TRIM(LOWER(location_name)))
+     FROM dwh_locations
+     WHERE location_name IS NOT NULL) AS dwh_count,
+
+    (SELECT COUNT(DISTINCT TRIM(LOWER(channel_location)))
+     FROM s1_channels
+     WHERE channel_location IS NOT NULL) AS s1_count,
+
+    (SELECT COUNT(DISTINCT TRIM(LOWER(location_name)))
+     FROM s2_locations
+     WHERE location_name IS NOT NULL) AS s2_count
+) AS counts;
+
+
+SELECT sc.channel_location
+FROM s1_channels sc
+WHERE sc.channel_location NOT IN (
+    SELECT dl.location_name 
+    FROM dwh_locations dl
+    WHERE dl.location_name IS NOT NULL
+);
+
+SELECT sl.location_name
+FROM s2_locations sl
+WHERE sl.location_name NOT IN (
+    SELECT dl.location_name 
+    FROM dwh_locations dl
+    WHERE dl.location_name IS NOT NULL
+);
+
+
+--result: no errors
+
+
+-- 
+--check rows transfer from source to landing system--
+
+--s1_clients to lnd_s1_clients
+select count(*) from lnd_s1_clients;
+select count(*) from s1_clients;
+
+SELECT * FROM lnd_s1_clients
+EXCEPT ALL
+SELECT * FROM s1_clients;
+
+SELECT * FROM s1_clients
+EXCEPT ALL
+SELECT * FROM lnd_s1_clients;
+
+SELECT client_id, COUNT(*) as duplicate_count
+FROM s1_clients
+GROUP BY client_id 
+HAVING COUNT(*) > 1;
+
+SELECT client_id, COUNT(*) as duplicate_count
+FROM lnd_s1_clients
+GROUP BY client_id 
+HAVING COUNT(*) > 1;
+
+--result: error 11 rows too much in landing source (I think dublicated by etl process)
+
+
+--s1_channels to lnd_s1_channels
+select count(*) from lnd_s1_channels;
+select count(*) from s1_channels;
+
+SELECT * FROM lnd_s1_channels
+EXCEPT ALL
+SELECT * FROM s1_channels;
+
+SELECT * FROM s1_channels
+EXCEPT ALL
+SELECT * FROM lnd_s1_channels;
+
+--result: no errors
+
+
+--s1_sales to lnd_s1_sales
+select count(*) from lnd_s1_sales;
+select count(*) from s1_sales;
+
+SELECT * FROM lnd_s1_sales
+EXCEPT ALL
+SELECT * FROM s1_sales;
+
+SELECT * FROM s1_sales
+EXCEPT ALL
+SELECT * FROM lnd_s1_sales;
+
+select count(distinct client_id) from s1_sales;
+select count(distinct client_id) from lnd_s1_sales;
+
+
+SELECT client_id, channel_id, sale_date, product_id, COUNT(*) AS duplicate_count
+FROM s1_sales
+GROUP BY client_id, channel_id, sale_date, product_id
+HAVING COUNT(*) > 1;
+
+--result: error 176 rows missing
+
+
+--s1_products to lnd_s1_products
+select count(*) from lnd_s1_products;
+select count(*) from s1_products;
+
+SELECT * FROM lnd_s1_products
+EXCEPT ALL
+SELECT * FROM s1_products;
+
+SELECT * FROM s1_products
+EXCEPT ALL
+SELECT * FROM lnd_s1_products;
+
+--result: no errors
+
 --
+--s2_clients to lnd_s2_clients
+select count(*) from lnd_s2_clients;
+select count(*) from s2_clients;
 
-select * from s2_clients;
+SELECT * FROM lnd_s2_clients
+EXCEPT ALL
+SELECT * FROM s2_clients;
+
+SELECT * FROM s2_clients
+EXCEPT ALL
+SELECT * FROM lnd_s2_clients;
+
+--result: no errors
 
 
+--s2_channels to lnd_s2_channels
+select count(*) from lnd_s2_channels;
+select count(*) from s2_channels;
+
+SELECT * FROM lnd_s2_channels
+EXCEPT ALL
+SELECT * FROM s2_channels;
+
+SELECT * FROM s2_channels
+EXCEPT ALL
+SELECT * FROM lnd_s2_channels;
+
+--result: no errors
 
 
+--s2_client_sales to lnd_s2_client_sales
+select count(*) from lnd_s2_client_sales;
+select count(*) from s2_client_sales;
+
+SELECT * FROM lnd_s2_client_sales
+EXCEPT ALL
+SELECT * FROM s2_client_sales;
+
+SELECT * FROM s2_client_sales
+EXCEPT ALL
+SELECT * FROM lnd_s2_client_sales;
+
+select count(distinct client_id) from s2_client_sales;
+select count(distinct client_id) from lnd_s2_client_sales;
 
 
+SELECT client_id, channel_id, saled_at, product_id, COUNT(*) AS duplicate_count
+FROM s2_client_sales
+GROUP BY client_id, channel_id, saled_at, product_id
+HAVING COUNT(*) > 1;
 
 
+SELECT *
+FROM s2_client_sales
+WHERE client_id IS NULL 
+   OR channel_id IS NULL 
+   OR saled_at IS NULL 
+   OR product_id IS NULL;
+
+SELECT *
+FROM lnd_s2_client_sales
+WHERE client_id IS NULL 
+   OR channel_id IS NULL 
+   OR saled_at IS NULL 
+   OR product_id IS NULL;
 
 
+--result: error 5 rows missing
 
 
+--s2_locations to lnd_s2_locations
+select count(*) from lnd_s2_locations;
+select count(*) from s2_locations;
+
+SELECT * FROM lnd_s2_locations
+EXCEPT ALL
+SELECT * FROM s2_locations;
+
+SELECT * FROM s2_locations
+EXCEPT ALL
+SELECT * FROM lnd_s2_locations;
+
+select location_id, count(*)
+from s2_locations sl 
+group by location_id 
+having count(*) > 1;
+
+select location_id, count(*)
+from lnd_s2_locations sl 
+group by location_id 
+having count(*) > 1;
 
 
+--result: doubling 5 rows from source
+
+
+-- I found value NA in location_src_id, but must be N/A
+SELECT *
+FROM dwh_locations
+WHERE location_src_id != 'N/A'
+  and location_src_id !~ '^[0-9]+$';
+
+--result: 15 rows with wrong value
+
+
+--Pobaluemsja s information_schema
+
+select table_name, column_name, is_nullable, data_type
+from information_schema."columns"
+where table_schema = 'public'
+and table_name = 'dwh_sales';
 
 
 
