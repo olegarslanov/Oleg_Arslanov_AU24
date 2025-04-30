@@ -1,0 +1,3 @@
+
+ Found 10 valid posts for userId=3
+All posts belong to userId=3 and the total count is correct (10).

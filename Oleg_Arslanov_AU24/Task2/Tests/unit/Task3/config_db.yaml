@@ -1,0 +1,8 @@
+# connection to existing Postgre DB
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: "1978"
+  dbname: "nyc_taxi"

@@ -1,0 +1,4 @@
+
+  GCP Blob count: 24
+  AWS S3 Object count: 238
+Both GCP and AWS buckets contain data for the specified date.

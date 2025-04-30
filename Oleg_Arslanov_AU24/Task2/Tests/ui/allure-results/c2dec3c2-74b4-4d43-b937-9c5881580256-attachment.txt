@@ -1,0 +1,7 @@
+1. We are opened image with link 'Capture report views'
+2. We are inside iframe
+Test 2.1: Open Income Statements report page
+Test 2.2: Selecting slicer value '1/1/2014'
+Found 2 date input fields.
+Entered start date: 1/1/2014
+Test 2.3: Completed successfully!

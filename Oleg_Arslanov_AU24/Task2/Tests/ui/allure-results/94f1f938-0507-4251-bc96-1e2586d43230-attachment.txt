@@ -1,0 +1,4 @@
+1. We are opened image with link 'Capture report views'
+2. We are inside iframe
+Test 3: Click 'Total Unit of VanArsdel' button
+Test 3: Completed successfully!

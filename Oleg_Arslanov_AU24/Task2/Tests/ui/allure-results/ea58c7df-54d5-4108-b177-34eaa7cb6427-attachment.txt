@@ -1,0 +1,4 @@
+1. We are opened image with link 'Capture report views'
+2. We are inside iframe
+Test 1: Open decomposition tree visualization
+Test 1: Got 'Q&A'. Completed successfully!
